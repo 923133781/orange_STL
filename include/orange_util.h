@@ -1,5 +1,5 @@
-#ifndef __ORANGE_UTILE_H__
-#define __ORANGE_UTILE_H__
+#ifndef __ORANGE_UTIL_H__
+#define __ORANGE_UTIL_H__
 
 #include <cstddef>
 
@@ -310,4 +310,4 @@ pair<Ty1, Ty2> make_pair(Ty1&& first, Ty2&& second)
 
 }
 
-#endif // !__ORANGE_UTILE_H__
+#endif // !__ORANGE_UTIL_H__

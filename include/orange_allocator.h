@@ -2,7 +2,7 @@
 #define __ORANGE_ALLOCATOR_H__
 
 #include "orange_construct.h"
-#include "orange_utile.h"
+#include "orange_util.h"
 
 namespace orange_stl
 {
