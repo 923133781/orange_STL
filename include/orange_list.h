@@ -315,7 +315,334 @@ public:
         return *(--end());
     }
 
+    /* 调整容器相关操作 */
+    void assign(size_type n, const value_type& value) 
+    { fill_assign(n, value); }
+
+    template <class Iter, typename std::enable_if<orange_stl::is_input_iterator<Iter>::value, int>::type=0>
+    void assign(Iter first, Iter last)
+    { copy_assign(first, last); }
+
+    void assign(std::initializer_list<T> ilist)
+    { copy_assign(ilist.begin(), ilist.end()); }
+
+    /* emplace_back() 和 push_back() 的区别，就在于底层实现的机制不同。
+    push_back() 向容器尾部添加元素时，首先会创建这个元素，然后再将这个元素拷贝或者移动到容器中
+    （如果是拷贝的话，事后会自行销毁先前创建的这个元素）；而 emplace_back() 在实现时，则是直接
+    在容器尾部创建这个元素，省去了拷贝或移动元素的过程。 */
+    template<class ...Args>
+    void emplace_front(Args&& ...args)
+    {
+        THROW_LENGTH_ERROR_IF(size_>max_size()-1, "list<T>'s size too big");
+        auto link_node=create_node(orange_stl::forward<Args>(args)...);
+        link_nodes_at_front(link_node->as_base(), link_node->as_base());
+        ++size_;
+    }
+
+    template <class ...Args>
+    void emplace_back(Args&& ...args)
+    {
+        THROW_LENGTH_ERROR_IF(size_>max_size()-1, "list<T>'s size too big");
+        auto link_node = create_node(orange_stl::forward<Args>(args)...);
+        link_nodes_at_back(link_node->as_base(), link_node->as_base());
+        ++size_;
+    }
+
+    template <class ...Args>
+    iterator emplace(const_iterator pos, Args&& ...args)
+    {
+        THROW_LENGTH_ERROR_IF(size_>max_size()-1, "lisr<T>'s size too big!");
+        auto link_node=create_node(orange_stl::forward<Args>(args)...);
+        link_nodes(pos.node_, link_node->as_base(), link_node->as_base());
+        ++size_;
+        return iterator(link_node);
+    }
+
+    /* insert */
+    iterator insert(const_iterator pos, const value_type& value)
+    {
+        THROW_LENGTH_ERROR_IF(size_>max_size()-1, "list<T>'s size too big!");
+        auto link_node=create_node(value);
+        ++size_;
+        return link_iter_node(pos, link_node->as_base());
+    }
+
+    iterator insert(const_iterator pos, value_type &&value)
+    {
+        THROW_LENGTH_ERROR_IF(size>max_size()-1, "list<T>'s size too big!");
+        auto link_node=create_node(orange_stl::move(value));
+        ++size_;
+        return link_iter_node(pos, link_node->as_base());
+    }
+
+    iterator insert(const_iterator pos, size_type n, const value_type& value)
+    {
+        THROW_LENGTH_ERROR_IF(size_>max_size()-n, "list<T>'s size too big!");
+        return fill_insert(pos, n, value);
+    }
+
+    template <class Iter, typename std::enable_if<orange_stl::is_input_iterator<Iter>::value, int>::type=0>
+    iterator insert(const_iterator pos, Iter first, Iter last)
+    {
+        size_type n=orange_stl::distance(first, last);
+        THROW_LENGTH_ERROR_IF(size_>max_size()-n, "list<T>'s size too big!");
+        return copy_insert(pos, n, first);
+    }
+
+    /* push_front()/push_back() */
+    void push_front(const value_type& value)
+    {
+        THROW_LENGTH_ERROR_IF(size_>max_size()-1, "list<T>'s size too big!");
+        auto link_node=create_node(value);
+        link_nodes_at_front(link_node->as_base(), link_node->as_base());
+        ++size_;
+    }
+
+    void push_front(value_type &&value)
+    {
+        emplace_front(orange_stl::move(value));
+    }
+
+    void push_back(const value_type& value)
+    {
+        THROW_LENGTH_ERROR_IF(size_>max_size()-1, "list<T>'s size too big!");
+        auto link_node=create_node(value);
+        link_nodes_at_back(link_node->as_base(), link_node->as_base());
+        ++size();
+    }
+
+    void push_back(value_type&& value)
+    {
+        emplace_back(orange_stl::move(value));
+    }
+
+    /* pop_front() / pop_back() */
+    void pop_front()
+    {
+        ORANGE_STL_DEBUG(!empty());
+        auto n=node_->next;
+        unlink_nodes(n, n);
+        destroy_node(n->as_node());
+        --size_;
+    }
+    void pop_back()
+    {
+        ORANGE_STL_DEBUG(!empty());
+        auto n=node_->prev;
+        unlink_nodes(n, n);
+        destroy_node(n->as_node());
+        --size_;
+    }
+
+    /* erase */
+    iterator erase(const_iterator pos);
+    iterator erase(const_iterator first, const_iterator last);
+
+    void clear();
+
+    /* resize */
+    void resize(size_type new_size) { resize(new_size, value_type()); }
+    void resize(size_type new_size, const value_type& value);
+
+    void swap(list &rhs) noexcept
+    {
+        orange_stl::swap(node_, rhs.node_);
+        orange_stl::swap(size_, rhs.size_);
+    }
+
+    /* list 相关操作 */
+    void splice(const_iterator pos, list& other);
+    void splice(const_iterator pos, list& other, const_iterator it);
+    void splice(const_iterator pos, list& other, const_iterator first, const_iterator last);
+
+    void remove(const value_type& value)
+    {
+        remove_if( [&](cosnt value_type& v) { return v==value; } );
+    }
+    template <class UnaryPredicate>
+    void remove_if(UnaryPredicate pred);
+
+    void unique()
+    {
+        unique(orange_stl::equal_to<T>());
+    }
+    template <class BinaryPredicate>
+    void unique(BinaryPredicate pred);
+
+    void merge(list &x)
+    {
+        merge(x, orange_stl::less<T>());
+    }
+    template <class Compare>
+    void merge(list &x, Compare comp);
+
+    void sort()
+    {
+        list_sort(begin(), end(), size(), orange_stl::less<T>());
+    }
+    template <class Compared>
+    void sort(Compared comp)
+    {
+        list_sort(begin(), end(), size(), comp);
+    }
+
+
+private:
+    /* create,destroy   node */
+    template <class ...Args>
+    node_ptr create_node(Args&& ...args);
+    void destroy_node(node_ptr p);
+
+    /* initialize */
+    void fill_init(size_type n, const value_type& value);
+    template <class Iter>
+    void copy_init(Iter first, Iter last);
+
+    /* link/unlink */
+    iterator    link_iter_node(const_iterator pos, base_ptr node);
+    void        link_nodes(base_ptr p, base_ptr first, base_ptr last);
+    void        link_nodes_at_front(base_ptr first, base_ptr last);
+    void        link_nodes_at_back(base_ptr first, base_ptr last);
+    void        unlink_nodes(base_ptr f, base_ptr l);
+
+    /* assign */
+    void    fill_assign(size_type n, const value_type& value);
+    template <class Iter>
+    void    copy_assign(Iter first, Iter last);
+
+    /* insert */
+    iterator fill_insert(const_iterator pos, size_type n, const value_type& value);
+    template <class Iter>
+    iterator copy_insert(const_iterator pos, size_type n, Iter first);
+
+    /* sort */
+    template <class Compared>
+    iterator list_sort(iterator first, iterator last, size_type n, Compared comp);
 };
+
+/* erase实现 */
+template <class T>
+typename list<T>::iterator
+list<T>::erase(const_iterator pos)
+{
+    ORANGE_STL_DEBUG(pos!=cend());
+    auto n=pos.node_;
+    auto next=n->next;
+    unlink_nodes(n, n);
+    destroy_node(n->as_node());
+    --size_;
+    return iterator(next);
+}
+
+/* 删除[first, last) 内的元素 */
+template <class T>
+typename list<T>::iterator
+list<T>::erase(const_iterator first, const_iterator lasr)
+{
+    if(first!=last)
+    {
+        unlink_nodes(first.node_, last.node_->prev);
+        while(first!=last)
+        {
+            auto cur=first.node_;
+            ++first;
+            destroy_node(cur->as_node());
+            --size_;
+        }
+    }
+    return iterator(last.node_);
+}
+
+/* 清空list */
+template <class T>
+void list<T>::clear()
+{
+    if(size_!=0)
+    {
+        auto cur=node_->next;
+        for(base_ptr next=cur->next; cur!=node_; cur=next, next=cur->next)
+        {
+            destroy_node(cur->as_node());
+        }
+        node_->unlink();
+        size_=0;
+    }
+}
+
+/* reset size */
+template <class T>
+void list<T>::resize(size_type new_size, const value_type& value)
+{
+    auto i=begin();
+    size_type len=0;
+    while(i!=end() && len<new_size)
+    {
+        ++i;
+        ++len;
+    }
+    if(len==new_size)
+    {
+        erase(i, node_);
+    }
+    else
+    {
+        insert(node_, new_size-len, value);
+    }
+}
+
+/* 将list x 接合到pos之前 */
+template <class T>
+void list<T>::splice(const_iterator pos, list& x)
+{
+    ORANGE_STL_DEBUG(this!=&x);
+    if(!x.empty())
+    {
+        THROW_LENGTH_ERROR_IF(size_>max_size()-x.size(), "list<T>'s size too big!");
+        auto f=x.node->next;
+        auto l=x.node->prev;
+
+        x.unlink_nodes(f, l);
+        link_nodes(pos.node_, f, l);
+
+        size_+=x.size_;
+        x.size_=0;
+    }
+}
+
+/* 将it所致节点接合于pos之前 */
+template <class T>
+void list<T>::splice(const_iterator pos, list &x, const_iterator it)
+{
+    if(pos.node_!=it.node_ && pos.node_!=it.node_->next)
+    {
+        THROW_LENGTH_ERROR_IF(size_>max_size()-1, "list<T>'s size too big!");
+        auto f=it.node_;
+        x.unlink_nodes(f,f);
+        link_nodes(pos.node_, f,f);
+        ++size_;
+        --x.size_;
+    }
+}
+
+/* 将list的x的[first, last)内的节点结合到pos之前 */
+template<class T>
+void list<T>::splice(const_iterator pos, list &x, const_iterator first, const_iterator last)
+{
+    if(first!=last && this!=&x)
+    {
+        size_type n=orange_stl::distance(first, last);
+        THROW_RUNTIME_ERROR_IF(size_>max_size()-n, "list<T>'s size too big!");
+        auto f=first.node_;
+        auto l=last.node_;
+
+        x.unlink_nodes(f, l);
+        link_nodes(pos.node_, f, l);
+
+        size_+=n;
+        x.size_-=n;
+    }
+}
+
 
 } // namespace orange_stl
 
