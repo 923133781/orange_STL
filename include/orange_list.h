@@ -485,7 +485,7 @@ public:
     {
         list_sort(begin(), end(), size(), comp);
     }
-
+    void reverse();
 
 private:
     /* create,destroy   node */
@@ -642,9 +642,136 @@ void list<T>::splice(const_iterator pos, list &x, const_iterator first, const_it
         x.size_-=n;
     }
 }
+/* 将另一元操作pred为true的所有元素移除 */
+template <class T>
+template <class UnaryPredicate>
+void list<T>::remove_if(UnaryPredicate pred)
+{
+    auto f=begin();
+    auto l=end();
+    for(auto next=f; f!=l; f=next)
+    {
+        ++next;
+        if(pred(*f))
+        {
+            erase(f);
+        }
+    }
+}
+/* 移除list中满足pred为true重复元素 */
+template <class T>
+template <class BinaryPredicate>
+void list<T>::unique(BinaryPredicate pred)
+{
+    auto i=begin();
+    auto e=end();
+    auto j=i;
+    ++j;
+    while(j!=e)
+    {
+        if(pred(*i, *j))
+        {
+            erase(j);
+        }
+        else
+        {
+            i=j;
+        }
+        j=i;
+        ++j;
+    }
+}
+
+/* 与另一个list合并，按照comp为true的顺序 */
+template<class T>
+template <class Compare>
+void list<T>::merge(list &x, Compare comp)
+{
+    if(this != &x)
+    {
+        THROW_LENGTH_ERROR_IF(size_>max_size()-x.size_, "list<T>'s size too big!");
+
+        auto f1=begin();
+        auto l1=end();
+        auto f2=x.begin();
+        auto l2=x.end();
+
+        while(f1!=l1 && f2!=l2)
+        {
+            if(comp(*f2, *f1))
+            {
+                auto next=f2;
+                ++next;
+                for(; next!=l2 && comp(*next, *f1); ++next);
+                auto f=f2.node_;
+                auto l=next.node_->prev;
+                f2=next;
+
+                x.unlink_nodes(f,l);
+                link_nodes(f1.node_, f, l);
+                ++f1;
+            }
+            else
+            {
+                ++f1;
+            }
+        }
+        if(f2 != l2)
+        {
+            auto f=f2.node_;
+            auto l=l2.node_->prev;
+            x.unlink_nodes(f,l);
+            link_nodes(l1.node_, f, l);
+        }
+        size_ += x.size_;
+        x.size_=0;
+    }
+}
+
+/* 反转list */
+template <class T>
+void list<T>::reverse()
+{
+    if(size_<=1) return ;
+
+    auto i=begin();
+    auto e=end();
+    while(i.node_!=e.node_)
+    {
+        orange_stl::swap(i.node_->prev, i.node_->next);
+        i.node_=i.node_->prev;
+    }
+    orange_stl::swap(e.node_->prev, e.node_->next);
+}
+
+/* 创建节点 */
+template <class T>
+template <class ...Args>
+typename list<T>::node_ptr
+list<T>::create_node (Args&& ...args)
+{
+    node_ptr p=node_allocator::allocate(1);
+    try{
+        data_allocator::construct(orange_stl::address_of(p->value), orange_stl::forward<Args>(args)...);
+        p->prev=nullptr;
+        p->next=nullptr;
+    }
+    catch(...)
+    {
+        node_allocator::deallocate(p);
+        throw;
+    }
+    return p;
+}
+
+/* 销毁节点 */
+template<class T>
+void list<T>::destroy_node (node_ptr p)
+{
+    data_allocator::destroy(orange_stl::address_of(p->value));
+    node_allocator::deallocate(p);
+}
 
 
 } // namespace orange_stl
-
-
 #endif // !__ORANGE_LIST_H__
