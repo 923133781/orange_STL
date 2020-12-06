@@ -297,7 +297,7 @@ public:
     reference front()
     {
         ORANGE_STL_DEBUG(!empty());
-        return *bengin();
+        return *begin();
     }
     const_reference front() const
     {
@@ -598,8 +598,8 @@ void list<T>::splice(const_iterator pos, list& x)
     if(!x.empty())
     {
         THROW_LENGTH_ERROR_IF(size_>max_size()-x.size(), "list<T>'s size too big!");
-        auto f=x.node->next;
-        auto l=x.node->prev;
+        auto f=x.node_->next;
+        auto l=x.node_->prev;
 
         x.unlink_nodes(f, l);
         link_nodes(pos.node_, f, l);
@@ -810,7 +810,7 @@ void list<T>::copy_init(Iter first, Iter last)
         for(; n>0; --n, ++first)
         {
             auto node=create_node(*first);
-            link_node_at_back(node->as_base(), node->as_base());
+            link_nodes_at_back(node->as_base(), node->as_base());
         }
     }
     catch(...)
