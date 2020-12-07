@@ -621,8 +621,6 @@ namespace orange_stl
         iterator list_sort(iterator first, iterator last, size_type n, Compared comp);
     };
 
-    /*****************************************************************************************/
-
     // 删除 pos 处的元素
     template <class T>
     typename list<T>::iterator
