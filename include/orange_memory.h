@@ -75,7 +75,7 @@ public:
 
   ~temporary_buffer()
   {
-    mystl::destroy(buffer, buffer + len);
+    orange_stl::destroy(buffer, buffer + len);
     free(buffer);
   }
 
@@ -90,7 +90,7 @@ private:
   void allocate_buffer();
   void initialize_buffer(const T&, std::true_type) {}
   void initialize_buffer(const T& value, std::false_type)
-  { mystl::uninitialized_fill_n(buffer, len, value); }
+  { orange_stl::uninitialized_fill_n(buffer, len, value); }
 
 private:
   temporary_buffer(const temporary_buffer&);
@@ -104,7 +104,7 @@ temporary_buffer(ForwardIterator first, ForwardIterator last)
 {
   try
   {
-    len = mystl::distance(first, last);
+    len = orange_stl::distance(first, last);
     allocate_buffer();
     if (len > 0)
     {
@@ -203,6 +203,6 @@ public:
   }
 };
 
-} // namespace mystl
+} // namespace orange_stl
 #endif // !__ORANGE_MEMORY_H__
 

@@ -1,7 +1,7 @@
 #ifndef __ORANGE_FUNCTIONAL_H__
 #define __ORANGE_FUNCTIONAL_H__
 
-// 这个头文件包含了 mystl 的函数对象与哈希函数
+// 这个头文件包含了 orange_stl 的函数对象与哈希函数
 
 #include <cstddef>
 
@@ -195,44 +195,44 @@ struct hash<T*>
 };
 
 // 对于整型类型，只是返回原值
-#define MYSTL_TRIVIAL_HASH_FCN(Type)         \
+#define orange_stl_TRIVIAL_HASH_FCN(Type)         \
 template <> struct hash<Type>                \
 {                                            \
   size_t operator()(Type val) const noexcept \
   { return static_cast<size_t>(val); }       \
 };
 
-MYSTL_TRIVIAL_HASH_FCN(bool)
+orange_stl_TRIVIAL_HASH_FCN(bool)
 
-MYSTL_TRIVIAL_HASH_FCN(char)
+orange_stl_TRIVIAL_HASH_FCN(char)
 
-MYSTL_TRIVIAL_HASH_FCN(signed char)
+orange_stl_TRIVIAL_HASH_FCN(signed char)
 
-MYSTL_TRIVIAL_HASH_FCN(unsigned char)
+orange_stl_TRIVIAL_HASH_FCN(unsigned char)
 
-MYSTL_TRIVIAL_HASH_FCN(wchar_t)
+orange_stl_TRIVIAL_HASH_FCN(wchar_t)
 
-MYSTL_TRIVIAL_HASH_FCN(char16_t)
+orange_stl_TRIVIAL_HASH_FCN(char16_t)
 
-MYSTL_TRIVIAL_HASH_FCN(char32_t)
+orange_stl_TRIVIAL_HASH_FCN(char32_t)
 
-MYSTL_TRIVIAL_HASH_FCN(short)
+orange_stl_TRIVIAL_HASH_FCN(short)
 
-MYSTL_TRIVIAL_HASH_FCN(unsigned short)
+orange_stl_TRIVIAL_HASH_FCN(unsigned short)
 
-MYSTL_TRIVIAL_HASH_FCN(int)
+orange_stl_TRIVIAL_HASH_FCN(int)
 
-MYSTL_TRIVIAL_HASH_FCN(unsigned int)
+orange_stl_TRIVIAL_HASH_FCN(unsigned int)
 
-MYSTL_TRIVIAL_HASH_FCN(long)
+orange_stl_TRIVIAL_HASH_FCN(long)
 
-MYSTL_TRIVIAL_HASH_FCN(unsigned long)
+orange_stl_TRIVIAL_HASH_FCN(unsigned long)
 
-MYSTL_TRIVIAL_HASH_FCN(long long)
+orange_stl_TRIVIAL_HASH_FCN(long long)
 
-MYSTL_TRIVIAL_HASH_FCN(unsigned long long)
+orange_stl_TRIVIAL_HASH_FCN(unsigned long long)
 
-#undef MYSTL_TRIVIAL_HASH_FCN
+#undef orange_stl_TRIVIAL_HASH_FCN
 
 // 对于浮点数，逐位哈希
 inline size_t bitwise_hash(const unsigned char* first, size_t count)

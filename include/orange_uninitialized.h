@@ -9,7 +9,7 @@
 #include "orange_type_traits.h"
 #include "orange_util.h"
 
-namespace mystl
+namespace orange_stl
 {
 
 /*****************************************************************************************/
@@ -20,7 +20,7 @@ template <class InputIter, class ForwardIter>
 ForwardIter 
 unchecked_uninit_copy(InputIter first, InputIter last, ForwardIter result, std::true_type)
 {
-  return mystl::copy(first, last, result);
+  return orange_stl::copy(first, last, result);
 }
 
 template <class InputIter, class ForwardIter>
@@ -32,13 +32,13 @@ unchecked_uninit_copy(InputIter first, InputIter last, ForwardIter result, std::
   {
     for (; first != last; ++first, ++cur)
     {
-      mystl::construct(&*cur, *first);
+      orange_stl::construct(&*cur, *first);
     }
   }
   catch (...)
   {
     for (; result != cur; ++result)
-      mystl::destroy(&*result);
+      orange_stl::destroy(&*result);
   }
   return cur;
 }
@@ -46,7 +46,7 @@ unchecked_uninit_copy(InputIter first, InputIter last, ForwardIter result, std::
 template <class InputIter, class ForwardIter>
 ForwardIter uninitialized_copy(InputIter first, InputIter last, ForwardIter result)
 {
-  return mystl::unchecked_uninit_copy(first, last, result, 
+  return orange_stl::unchecked_uninit_copy(first, last, result, 
                                      std::is_trivially_copy_assignable<
                                      typename iterator_traits<ForwardIter>::
                                      value_type>{});
@@ -60,7 +60,7 @@ template <class InputIter, class Size, class ForwardIter>
 ForwardIter 
 unchecked_uninit_copy_n(InputIter first, Size n, ForwardIter result, std::true_type)
 {
-  return mystl::copy_n(first, n, result).second;
+  return orange_stl::copy_n(first, n, result).second;
 }
 
 template <class InputIter, class Size, class ForwardIter>
@@ -72,13 +72,13 @@ unchecked_uninit_copy_n(InputIter first, Size n, ForwardIter result, std::false_
   {
     for (; n > 0; --n, ++cur, ++first)
     {
-      mystl::construct(&*cur, *first);
+      orange_stl::construct(&*cur, *first);
     }
   }
   catch (...)
   {
     for (; result != cur; ++result)
-      mystl::destroy(&*result);
+      orange_stl::destroy(&*result);
   }
   return cur;
 }
@@ -86,7 +86,7 @@ unchecked_uninit_copy_n(InputIter first, Size n, ForwardIter result, std::false_
 template <class InputIter, class Size, class ForwardIter>
 ForwardIter uninitialized_copy_n(InputIter first, Size n, ForwardIter result)
 {
-  return mystl::unchecked_uninit_copy_n(first, n, result,
+  return orange_stl::unchecked_uninit_copy_n(first, n, result,
                                         std::is_trivially_copy_assignable<
                                         typename iterator_traits<InputIter>::
                                         value_type>{});
@@ -100,7 +100,7 @@ template <class ForwardIter, class T>
 void 
 unchecked_uninit_fill(ForwardIter first, ForwardIter last, const T& value, std::true_type)
 {
-  mystl::fill(first, last, value);
+  orange_stl::fill(first, last, value);
 }
 
 template <class ForwardIter, class T>
@@ -112,20 +112,20 @@ unchecked_uninit_fill(ForwardIter first, ForwardIter last, const T& value, std::
   {
     for (; cur != last; ++cur)
     {
-      mystl::construct(&*cur, value);
+      orange_stl::construct(&*cur, value);
     }
   }
   catch (...)
   {
     for (;first != cur; ++first)
-      mystl::destroy(&*first);
+      orange_stl::destroy(&*first);
   }
 }
 
 template <class ForwardIter, class T>
 void  uninitialized_fill(ForwardIter first, ForwardIter last, const T& value)
 {
-  mystl::unchecked_uninit_fill(first, last, value, 
+  orange_stl::unchecked_uninit_fill(first, last, value, 
                                std::is_trivially_copy_assignable<
                                typename iterator_traits<ForwardIter>::
                                value_type>{});
@@ -139,7 +139,7 @@ template <class ForwardIter, class Size, class T>
 ForwardIter 
 unchecked_uninit_fill_n(ForwardIter first, Size n, const T& value, std::true_type)
 {
-  return mystl::fill_n(first, n, value);
+  return orange_stl::fill_n(first, n, value);
 }
 
 template <class ForwardIter, class Size, class T>
@@ -151,13 +151,13 @@ unchecked_uninit_fill_n(ForwardIter first, Size n, const T& value, std::false_ty
   {
     for (; n > 0; --n, ++cur)
     {
-      mystl::construct(&*cur, value);
+      orange_stl::construct(&*cur, value);
     }
   }
   catch (...)
   {
     for (; first != cur; ++first)
-      mystl::destroy(&*first);
+      orange_stl::destroy(&*first);
   }
   return cur;
 }
@@ -165,7 +165,7 @@ unchecked_uninit_fill_n(ForwardIter first, Size n, const T& value, std::false_ty
 template <class ForwardIter, class Size, class T>
 ForwardIter uninitialized_fill_n(ForwardIter first, Size n, const T& value)
 {
-  return mystl::unchecked_uninit_fill_n(first, n, value, 
+  return orange_stl::unchecked_uninit_fill_n(first, n, value, 
                                         std::is_trivially_copy_assignable<
                                         typename iterator_traits<ForwardIter>::
                                         value_type>{});
@@ -179,7 +179,7 @@ template <class InputIter, class ForwardIter>
 ForwardIter 
 unchecked_uninit_move(InputIter first, InputIter last, ForwardIter result, std::true_type)
 {
-  return mystl::move(first, last, result);
+  return orange_stl::move(first, last, result);
 }
 
 template <class InputIter, class ForwardIter>
@@ -191,12 +191,12 @@ unchecked_uninit_move(InputIter first, InputIter last, ForwardIter result, std::
   {
     for (; first != last; ++first, ++cur)
     {
-      mystl::construct(&*cur, mystl::move(*first));
+      orange_stl::construct(&*cur, orange_stl::move(*first));
     }
   }
   catch (...)
   {
-    mystl::destroy(result, cur);
+    orange_stl::destroy(result, cur);
   }
   return cur;
 }
@@ -204,7 +204,7 @@ unchecked_uninit_move(InputIter first, InputIter last, ForwardIter result, std::
 template <class InputIter, class ForwardIter>
 ForwardIter uninitialized_move(InputIter first, InputIter last, ForwardIter result)
 {
-  return mystl::unchecked_uninit_move(first, last, result,
+  return orange_stl::unchecked_uninit_move(first, last, result,
                                       std::is_trivially_move_assignable<
                                       typename iterator_traits<InputIter>::
                                       value_type>{});
@@ -218,7 +218,7 @@ template <class InputIter, class Size, class ForwardIter>
 ForwardIter 
 unchecked_uninit_move_n(InputIter first, Size n, ForwardIter result, std::true_type)
 {
-  return mystl::move(first, first + n, result);
+  return orange_stl::move(first, first + n, result);
 }
 
 template <class InputIter, class Size, class ForwardIter>
@@ -230,13 +230,13 @@ unchecked_uninit_move_n(InputIter first, Size n, ForwardIter result, std::false_
   {
     for (; n > 0; --n, ++first, ++cur)
     {
-      mystl::construct(&*cur, mystl::move(*first));
+      orange_stl::construct(&*cur, orange_stl::move(*first));
     }
   }
   catch (...)
   {
     for (; result != cur; ++result)
-      mystl::destroy(&*result);
+      orange_stl::destroy(&*result);
     throw;
   }
   return cur;
@@ -245,7 +245,7 @@ unchecked_uninit_move_n(InputIter first, Size n, ForwardIter result, std::false_
 template <class InputIter, class Size, class ForwardIter>
 ForwardIter uninitialized_move_n(InputIter first, Size n, ForwardIter result)
 {
-  return mystl::unchecked_uninit_move_n(first, n, result,
+  return orange_stl::unchecked_uninit_move_n(first, n, result,
                                         std::is_trivially_move_assignable<
                                         typename iterator_traits<InputIter>::
                                         value_type>{});

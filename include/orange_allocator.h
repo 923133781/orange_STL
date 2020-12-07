@@ -87,11 +87,17 @@ void allocator<T>::construct(T* ptr, T&& value)
 }
 
 // 未知个数参数的构造函数
+// template <class T>
+// template <class... Args>
+// void allocator<T>::construct(T* ptr, Args&& ...args)
+// {
+//     orange_stl::construct(ptr, orange_stl::forward<args>...);
+// }
 template <class T>
-template <class... Args>
-void allocator<T>::construct(T* ptr, Args&& ...args)
+template <class ...Args>
+ void allocator<T>::construct(T* ptr, Args&& ...args)
 {
-    orange_stl::construct(ptr, orange_stl::forward<Args>...);
+  orange_stl::construct(ptr, orange_stl::forward<Args>(args)...);
 }
 
 template <class T>

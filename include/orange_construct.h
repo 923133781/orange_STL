@@ -24,7 +24,7 @@ void construct(Ty1* ptr, const Ty2& value)
 template <class Ty, class... Args>
 void construct(Ty* ptr, Args&&... args)
 {
-  ::new ((void*)ptr) Ty(mystl::forward<Args>(args)...);
+  ::new ((void*)ptr) Ty(orange_stl::forward<Args>(args)...);
 }
 
 // destroy 将对象析构
