@@ -18,28 +18,26 @@ struct bidirectional_iterator_tag : public forward_iterator_tag {};
 struct random_access_iterator_tag : public bidirectional_iterator_tag {};
 
 // iterator 模板
-template <class Category, class T, class Distance = ptrdiff_t,
-  class Pointer = T*, class Reference = T&>
+template <class Category, class T, class Distance = ptrdiff_t, class Pointer = T*, class Reference = T&>
   struct iterator
 {
-  typedef Category                             iterator_category;
-  typedef T                                    value_type;
-  typedef Pointer                              pointer;
-  typedef Reference                            reference;
-  typedef Distance                             difference_type;
+    typedef Category                             iterator_category; // 迭代器的移动类型
+    typedef T                                    value_type;        // 迭代器所指对象的类型
+    typedef Pointer                              pointer;
+    typedef Reference                            reference;
+    typedef Distance                             difference_type;   // 迭代器之间的距离
 };
 
 // iterator traits
-
 template <class T>
 struct has_iterator_cat
 {
 private:
-  struct two { char a; char b; };
-  template <class U> static two test(...);
-  template <class U> static char test(typename U::iterator_category* = 0);
+    struct two { char a; char b; };
+    template <class U> static two test(...);
+    template <class U> static char test(typename U::iterator_category* = 0);
 public:
-  static const bool value = sizeof(test<T>(0)) == sizeof(char);
+    static const bool value = sizeof(test<T>(0)) == sizeof(char);
 };
 
 template <class Iterator, bool>
@@ -48,11 +46,11 @@ struct iterator_traits_impl {};
 template <class Iterator>
 struct iterator_traits_impl<Iterator, true>
 {
-  typedef typename Iterator::iterator_category iterator_category;
-  typedef typename Iterator::value_type        value_type;
-  typedef typename Iterator::pointer           pointer;
-  typedef typename Iterator::reference         reference;
-  typedef typename Iterator::difference_type   difference_type;
+    typedef typename Iterator::iterator_category iterator_category;
+    typedef typename Iterator::value_type        value_type;
+    typedef typename Iterator::pointer           pointer;
+    typedef typename Iterator::reference         reference;
+    typedef typename Iterator::difference_type   difference_type;
 };
 
 template <class Iterator, bool>
@@ -60,7 +58,7 @@ struct iterator_traits_helper {};
 
 template <class Iterator>
 struct iterator_traits_helper<Iterator, true>
-  : public iterator_traits_impl<Iterator,
+ : public iterator_traits_impl<Iterator,
   std::is_convertible<typename Iterator::iterator_category, input_iterator_tag>::value ||
   std::is_convertible<typename Iterator::iterator_category, output_iterator_tag>::value>
 {
@@ -75,21 +73,21 @@ struct iterator_traits
 template <class T>
 struct iterator_traits<T*>
 {
-  typedef random_access_iterator_tag           iterator_category;
-  typedef T                                    value_type;
-  typedef T*                                   pointer;
-  typedef T&                                   reference;
-  typedef ptrdiff_t                            difference_type;
+    typedef random_access_iterator_tag           iterator_category;
+    typedef T                                    value_type;
+    typedef T*                                   pointer;
+    typedef T&                                   reference;
+    typedef ptrdiff_t                            difference_type; // long long ---->  ptrdiff_t
 };
 
 template <class T>
 struct iterator_traits<const T*>
 {
-  typedef random_access_iterator_tag           iterator_category;
-  typedef T                                    value_type;
-  typedef const T*                             pointer;
-  typedef const T&                             reference;
-  typedef ptrdiff_t                            difference_type;
+    typedef random_access_iterator_tag           iterator_category;
+    typedef T                                    value_type;
+    typedef const T*                             pointer;
+    typedef const T&                             reference;
+    typedef ptrdiff_t                            difference_type;
 };
 
 template <class T, class U, bool = has_iterator_cat<iterator_traits<T>>::value>

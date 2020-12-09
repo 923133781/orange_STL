@@ -30,4 +30,4 @@ namespace orange_stl
 }
 
 
-#endif // !__ORANGE_ITERATOR_H__
+#endif // !__ORANGE_TYPE_TRAITS_H__
