@@ -371,8 +371,169 @@ void vector<T>::emplace_back(Args&& ...args)
     }
 }
 
+/* 在尾部插入元素 */
+template <class T>
+void vector<T>::push_back(const value_type& value)
+{
+    if(end_!=cap_)
+    {
+        data_allocator::construct(orange_stl::address_of(*end_), value);
+        ++end_;
+    }
+    else
+    {
+        reallocate_insert(end_, value);
+    }
+}
 
-/* 重新分配空间，并且在pis处就地构造元素 */
+/* 弹出尾部元素 */
+template <class T>
+void vector<T>::pop_back()
+{
+    ORANGE_STL_DEBUG(!empty());
+    data_allocator::destroy(end_-1);
+    --end_;
+}
+
+/* 在pos处插入元素 */
+template <class T>
+typename vector<T>::iterator
+vector<T>::insert(const_iterator pos, const value_type& value)
+{
+    ORANGE_STL_DEBUG(pos >= begin() && pos<=end());
+    iterator xpos=const_cast<iterator>(pos);
+    const size_type n=pos-begin_;
+    if(end_!=cap_ && xpos==end_)
+    {
+        data_allocator::construct(orange_stl::address(*end_), value);
+        ++end_;
+    }
+    else if(end_!=cap_)
+    {
+        auto new_end=end_;
+        data_allocator::construct(orange_stl::address_of(*end_), *(end_-1));
+        ++new_end;
+        auto value_copy=value;/* 避免元素因为一下复制而被改变 */
+        orange_stl::copy_backward(xpos, end_-1, end_);
+        *xpos=orange_stl::move(value_copy);
+        end_=new_end;
+    }
+    else
+    {
+        reallocate_insert(xpos, value);
+    }
+    return begin_+n;
+}
+
+/* 删除pos位置上的元素 */
+template <class T>
+typename vector<T>::iterator
+vector<T>::erase(const_iterator pos)
+{
+    ORANGE_STL_DEBUG(pos>=begin() && pos<end());
+    iterator xpos=begin_+(pos-begin());
+    orange_stl::move(xpos+1, end_, xpos);
+    --end_;
+    return xpos;
+}
+
+/* 删除[first, last)上的元素 */
+template <class T>
+typename vector<T>::iterator
+vector<T>::erase(const_iterator first, const_iterator last)
+{
+    ORANGE_STL_DEBUG(first>=begin() && last<=end() && !(last<first));
+    const auto n=first-begin();
+    iterator r=begin_+(first-begin());
+    data_allocator::destroy(orange_stl::move(r+(last-first), end_, t), end_);
+    end_=end_-(last-first);
+    return begin_+n;
+}
+
+/* 重置容器的大小 */
+template <class T>
+void vector<T>::resize(size_type new_size, const value_type& value)
+{
+    if(new_size<size())
+    {
+        erase(begin()+new_size, end());
+    }
+    else
+    {
+        insert(end(), new_size-size(), value);
+    }
+}
+
+/* 与另一个vector进行交换 */
+template <class T>
+void vector<T>::swap(vector<T>& rhs) noexcept
+{
+    if(this!=&rhs)
+    {
+        orange_stl::swap(begin_, rhs.begin_);
+        orange_stl::swap(end_, rhs.end_);
+        orange_stl::swap(cap_, rhs.cap_);
+    }
+}
+
+/* 辅助函数
+   try_init 函数，若分配失败则忽略，不抛出异常 */
+template <class T>
+void vector<T>::try_init() noexcept
+{
+    try
+    {
+        begin_=data_allocator::allocate(16);
+        end_=begin_;
+        cap_=begin_+16;
+    }
+    catch(...)
+    {
+        begin_=nullptr;
+        end_=nullptr;
+        cap_=nullptr;
+    }
+}
+
+/* init_space 函数 */
+template <class T>
+void vector<T>::init_space(size_type size, size_type cap)
+{
+    try
+    {
+        begin_=data_allocator::allocate(cap);
+        end_=begin_+size;
+        cap_=begin_+cap;
+    }
+    catch(...)
+    {
+        begin_=nullptr;
+        end_=nullptr;
+        cap_=nullptr;
+        throw;
+    }
+}
+
+/* fill_init 函数 */
+template <class T>
+void vector<T>::fill_init(size_type n, const value_type& value)
+{
+    const size_type init_size=orange_stl::max(static_cast<size_type>(16), n);
+    init_space(n, init_size);
+    orange_stl::uninitialized_fill_n(begin_, n, value);
+}
+
+/* range_init 函数 */
+template <class T>
+template <class Iter>
+void vector<T>::range_init(Iter first, Iter last)
+{
+    const size_type init_size = orange_stl::max(static_cast<size_type>(last-first), static_cast<size_type>(16));
+    init_space(static_cast<size_type>(last-first), init_size);
+    orange_stl::uninitialized_copy(first, last, begin_);
+}
+
+/* 重新分配空间，并且在pos处就地构造元素 */
 template <class T>
 template <class ...Args>
 void vector<T>::reallocate_emplace(iterator pos, Args&& ...args)
@@ -435,12 +596,52 @@ vector<T>::get_new_cap(size_type add_size)
     THROW_LENGTH_ERROR_IF(old_size>max_size()-add_size, "vector<T>'s size too big");
     if(old_size > max_size() - old_size/2)
     {
-        return old_size+add_size>max_size-16?old_size+add_size:old_size+add_size+16;
+        return old_size+add_size>max_size()-16?old_size+add_size:old_size+add_size+16;
     }
     const size_type new_size= old_size==0
         ?orange_stl::max(add_size, static_cast<size_type>(16))
         :orange_stl::max(old_size+old_size/2, old_size+add_size);
     return new_size;
+}
+
+/* fill_assign */
+template <class T>
+void vector<T>::fill_assign(size_type n, const value_type& value)
+{
+    if(n>capacity())
+    {
+        vector tmp(n, value);
+        swap(tmp);
+    }
+    else if(n>size())
+    {
+        orange_stl::fill(begin(), end(), value);
+        end_=orange_stl::uninitialized_fill_n(end_, n-size(), value);
+    }
+    else
+    {
+        erase(orange_stl::fill_n(begin_, n, value), end_);
+    }
+}
+
+/* copy_assign 函数 */
+template <class T>
+template <class IIter>
+void vector<T>::copy_assign(IIter first, IIter last, input_iterator_tag)
+{
+    auto cur=begin_;
+    for(; first!=last && cur!=end_; ++first, ++cur)
+    {
+        *cur=*first;
+    }
+    if(first==last)/* 如果first到last长度大于begin_到end_ */
+    {
+        erase(cur, end_);
+    }
+    else/* 如果first到last长度小于begin_到end_ */
+    {
+        insert(end_, first, last);
+    }
 }
 
 }
