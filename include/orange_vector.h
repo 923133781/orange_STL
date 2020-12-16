@@ -533,52 +533,6 @@ void vector<T>::range_init(Iter first, Iter last)
     orange_stl::uninitialized_copy(first, last, begin_);
 }
 
-/* 重新分配空间，并且在pos处就地构造元素 */
-template <class T>
-template <class ...Args>
-void vector<T>::reallocate_emplace(iterator pos, Args&& ...args)
-{
-    const auto new_size = get_new_cap(1);
-    auto new_begin = data_allocator::allocate(new_size);
-    auto new_end=new_begin;
-    try
-    {
-        new_end=orange_stl::uninitialized_move(begin_, pos, new_begin);
-        data_allocator::construct(orange_stl::address_of(*new_end), orange_stl::forward<Args>(args)...);
-        ++new_end;
-        new_end=orange_stl::uninitialized_move(pos, end_, new_end);
-    }
-    catch(...)
-    {
-        data_allocator::deallocate(new_begin, new_size);
-        throw;
-    }
-    destroy_and_recover(begin_, end_, cap_-begin_);
-    begin_=new_begin;
-    end_=new_end;
-    cap_=new_begin+new_size;
-}
-
-
-/* resinert */
-template<class T>
-void vector<T>::reinsert(size_type size)
-{
-    auto new_begin = data_allocator::allocate(size);
-    try{
-        orange_stl::uninitialized_move(begin_, end_, new_begin);
-    }
-    catch(...)
-    {
-        data_allocator::deallocate(new_begin, size);
-        throw;
-    }
-    data_allocator::deallocate(begin_, cap_-begin_);
-    begin_=new_begin;
-    end_=begin_+size;
-    cap_=begin_+size;
-}
-
 /* destroy_and_recover */
 template<class T>
 void vector<T>::destroy_and_recover(iterator first, iterator last, size_type n)
@@ -644,7 +598,249 @@ void vector<T>::copy_assign(IIter first, IIter last, input_iterator_tag)
     }
 }
 
+/* 用[first, last)为容器赋值 */
+template <class T>
+template <class FIter>
+void vector<T>::copy_assign(FIter first, FIter last, forward_iterator_tag)
+{
+    const size_type len=orange_stl::distance(first, last);
+    if(len>capacity()) 
+    {
+        vector tmp(first, last);
+        swap(tmp);
+    }
+    else if(size()>=len)
+    {
+        auto new_end=orange_stl::copy(first, last, begin_);
+        data_allocator::destroy(new_end, end_);
+        end_=new_end;
+    }
+    else
+    {
+        auto mid=first;
+        orange_stl::advance(mid, size());
+        orange_stl::copy(first, mid, begin_);
+        auto new_end=orange_stl::uninitialized_copy(mid, last, end_);
+        end_=new_end;
+    }
 }
+
+/* 重新分配空间，并且在pos处就地构造元素 */
+template <class T>
+template <class ...Args>
+void vector<T>::reallocate_emplace(iterator pos, Args&& ...args)
+{
+    const auto new_size = get_new_cap(1);
+    auto new_begin = data_allocator::allocate(new_size);
+    auto new_end=new_begin;
+    try
+    {
+        new_end=orange_stl::uninitialized_move(begin_, pos, new_begin);
+        data_allocator::construct(orange_stl::address_of(*new_end), orange_stl::forward<Args>(args)...);
+        ++new_end;
+        new_end=orange_stl::uninitialized_move(pos, end_, new_end);
+    }
+    catch(...)
+    {
+        data_allocator::deallocate(new_begin, new_size);
+        throw;
+    }
+    destroy_and_recover(begin_, end_, cap_-begin_);
+    begin_=new_begin;
+    end_=new_end;
+    cap_=new_begin+new_size;
+}
+
+/* 重新分配空间并在pos处插入元素 */
+template <class T>
+void vector<T>::reallocate_insert(iterator pos, const value_type& value)
+{
+    const auto new_size=get_new_cap(1);
+    auto new_begin=data_allocator::allocate(new_size);
+    auto new_end=new_begin;
+    const value_type& value_copy=value;
+    try
+    {
+        new_end=orange_stl::uninitialized_move(begin_, pos, new_begin);
+        data_allocator::construct(orange_stl::address_of(*new_end), value_copy);
+        ++new_end;
+        new_end=orange_stl::uninitialized_move(pos, end_, new_end);
+    }
+    catch(...)
+    {
+        data_allocator::deallocate(new_begin, new_size);
+        throw;
+    }
+    destroy_and_recover(begin_, end_, cap_-begin_);
+    begin_=new_begin;
+    end_=new_end;
+    cap_=new_begin+new_size;
+}
+
+/* fill_insert */
+template <class T>
+typename vector<T>::iterator
+vector<T>::fill_insert(iterator pos, size_type n, const value_type& value)
+{
+    if(n==0) return pos;
+    const size_type xpos=pos-begin_;
+    const value_type value_copy=value;
+    if(static_cast<size_type>(cap_-end_)>=n)
+    {
+        /* 备用空间大于增加的空间 */
+        const size_type after_elems=end_-pos;
+        auto old_end=end_;
+        if(after_elems>n)
+        {
+            orange_stl::uninitialized_copy(end_-n, end_, end_);
+            end_+=n;
+            orange_stl::move_backward(pos, old_end-n, old_end);
+            orange_stl::uninitialized_fill_n(pos, n, value_copy);
+        }
+        else
+        {
+            end_=orange_stl::uninitialized_fill_n(end_, n-after_elems, value_copy);
+            end_=orange_stl:uninitialized_move(pos, old_end, end_);
+            orange_stl::uninitialized_fill_n(pos, after_elems, value_copy);
+        }
+        
+    }
+    else
+    {
+        /* 如果备用空间不足 */
+        const auto new_size=get_new_cap(n);
+        auto new_begin=data_allocator::allocate(new_size);
+        auto new_end=new_begin;
+        try
+        {
+            new_end=orange_stl::uninitialized_move(begin_, pos, new_begin);
+            new_end=orange_stl::uninitialized_fill_n(new_end, n, value);
+            new_end=orange_stl::uninitialized_move(pos, end_, new_end);
+        }
+        catch(...)
+        {
+            destroy_and_recover(new_begin, new_end, new_size);
+            throw;
+        }
+        data_allocator::deallocate(begin_, cap_-begin_);
+        begin_=new_begin;
+        end_=new_end;
+        cap_=begin_+new_size;
+    }
+    return begin_+xpos;
+}
+
+/* copy_insert函数 */
+template <class T>
+template <class IIter>
+void vector<T>::copy_insert(iterator pos, IIter first, IIter last)
+{
+    if(first==last) return;
+
+    const auto n=orange_stl::distance(first, last);
+    if((cap_-end_)>=n)
+    {
+        /* 备用空间大小足够 */
+        const auto after_elems=end_-pos;
+        auto old_end=end_;
+        if(after_elems>n)
+        {
+            end_=orange_stl::uninitialized_copy(end_-n, end_, end_);
+            orange_stl::move_backward(pos, old_end-n, old_end);
+            orange_stl::uninitialized_copy(first, last, pos);
+        }
+        else
+        {
+            auto mid=first;
+            orange_stl::advance(mid, size());
+            end_=orange_stl::uninitialized_copy(mid, last, end_);
+            end_=orange_stl::uninitialized_move(pos, old_end, end_);
+            orange_stl::uninitialized_copy(first, mid, pos);
+        }
+    }
+    else
+    {
+        /* 备用空间不足 */
+        const auto new_size=get_new_cap(n);
+        auto new_begin=data_allocator::allocate(new_size);
+        auto new_end=new_begin;
+        try
+        {
+            new_end=orange_stl::uninitialized_move(begin_, pos, new_begin);
+            new_end=orange_stl::uninitialized_copy(first, last, new_end);
+            new_end=orange_stl::uninitialized_move(pos, end_, new_end);
+        }
+        catch(...)
+        {
+            destroy_and_recover(new_begin, new_end, new_size);
+            throw;
+        }
+        data_allocator::deallocate(new_begin, new_end, new_size);
+        begin_=new_begin;
+        end_=new_end;
+        cap_=begin_+new_size;
+    }
+}
+
+/* resinert */
+template<class T>
+void vector<T>::reinsert(size_type size)
+{
+    auto new_begin = data_allocator::allocate(size);
+    try{
+        orange_stl::uninitialized_move(begin_, end_, new_begin);
+    }
+    catch(...)
+    {
+        data_allocator::deallocate(new_begin, size);
+        throw;
+    }
+    data_allocator::deallocate(begin_, cap_-begin_);
+    begin_=new_begin;
+    end_=begin_+size;
+    cap_=begin_+size;
+}
+
+/* 重载比价操作符 */
+template <class T>
+bool operator==(const vector<T>&lhs, const vector<T>& rhs)
+{
+    return lhs.size()==rhs.size()&&orange_stl::equal(lhs.begin(), lhs.end(), rhs.begin());
+}
+template <class T>
+bool operator<(const vector<T>&lhs, const vector<T>& rhs)
+{
+    return orange_stl::lexicographical_compare(lhs.begin(), lhs.end(), rhs.begin(), rhs.end());
+}
+template <class T>
+bool operator!=(const vector<T>&lhs, const vector<T>& rhs)
+{
+    return !(lhs==rhs);
+}
+template <class T>
+bool operator>(const vector<T>&lhs, const vector<T>& rhs)
+{
+    return rhs<lhs;
+}
+template <class T>
+bool operator<=(const vector<T>&lhs, const vector<T>& rhs)
+{
+    return !(rhs<lhs);
+}
+template <class T>
+bool operator>=(const vector<T>&lhs, const vector<T>& rhs)
+{
+    return !(lhs<rhs);
+}
+
+/* 重载orange_stl的swap */
+template <class T>
+void swap(vector<T>&lhs, vector<T>& rhs)
+{
+    lhs.swap(rhs);
+}
+
+}   /* end   namespace orange_stl */
 
 
 #endif
