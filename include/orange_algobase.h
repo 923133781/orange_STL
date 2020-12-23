@@ -119,7 +119,7 @@ unchecked_copy(Tp* first, Tp* last, Up* result)
 template <class InputIter, class OutputIter>
 OutputIter copy(InputIter first, InputIter last, OutputIter result)
 {
-  return unchecked_copy(first, last, result);
+    return unchecked_copy(first, last, result);
 }
 
 /*****************************************************************************************/

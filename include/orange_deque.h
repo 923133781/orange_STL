@@ -1088,6 +1088,348 @@ deque<T>::insert_aux(iterator position, Args&& ...args)
     return position;
 }
 
+// fill_insert 函数
+template <class T>
+void deque<T>::fill_insert(iterator position, size_type n, const value_type& value)
+{
+    const size_type elems_before = position - begin_;
+    const size_type len = size();
+    auto value_copy = value;
+    if (elems_before < (len / 2))
+    {
+        require_capacity(n, true);
+        // 原来的迭代器可能会失效
+        auto old_begin = begin_;
+        auto new_begin = begin_ - n;
+        position = begin_ + elems_before;
+        try
+        {
+            if (elems_before >= n)  // pos前的元素个数大于等于n
+            {
+                auto begin_n = begin_ + n;
+                orange_stl::uninitialized_copy(begin_, begin_n, new_begin);
+                begin_ = new_begin;
+                orange_stl::copy(begin_n, position, old_begin);
+                orange_stl::fill(position - n, position, value_copy);
+            }
+            else
+            {
+                orange_stl::uninitialized_fill(orange_stl::uninitialized_copy(begin_, position, new_begin), begin_, value_copy);
+                begin_ = new_begin;
+                orange_stl::fill(old_begin, position, value_copy);
+            }
+        }
+        catch (...)
+        {
+            if (new_begin.node != begin_.node)
+                destroy_buffer(new_begin.node, begin_.node - 1);
+            throw;
+        }
+    }
+    else
+    {
+        require_capacity(n, false);
+        // 原来的迭代器可能会失效
+        auto old_end = end_;
+        auto new_end = end_ + n;
+        const size_type elems_after = len - elems_before;
+        position = end_ - elems_after;
+        try
+        {
+            if (elems_after > n)
+            {
+                auto end_n = end_ - n;
+                orange_stl::uninitialized_copy(end_n, end_, end_);
+                end_ = new_end;
+                orange_stl::copy_backward(position, end_n, old_end);
+                orange_stl::fill(position, position + n, value_copy);
+            }
+            else
+            {
+                orange_stl::uninitialized_fill(end_, position + n, value_copy);
+                orange_stl::uninitialized_copy(position, end_, position + n);
+                end_ = new_end;
+                orange_stl::fill(position, old_end, value_copy);
+            }
+        }
+        catch (...)
+        {
+            if(new_end.node != end_.node)
+                destroy_buffer(end_.node + 1, new_end.node);
+            throw;
+        }
+    }
+}
+
+// copy_insert
+template <class T>
+template <class FIter>
+void deque<T>::copy_insert(iterator position, FIter first, FIter last, size_type n)
+{
+    const size_type elems_before = position - begin_;
+    auto len = size();
+    if (elems_before < (len / 2))
+    {
+        require_capacity(n, true);
+        // 原来的迭代器可能会失效
+        auto old_begin = begin_;
+        auto new_begin = begin_ - n;
+        position = begin_ + elems_before;
+        try
+        {
+            if (elems_before >= n)
+            {
+                auto begin_n = begin_ + n;
+                orange_stl::uninitialized_copy(begin_, begin_n, new_begin);
+                begin_ = new_begin;
+                orange_stl::copy(begin_n, position, old_begin);
+                orange_stl::copy(first, last, position - n);
+            }
+            else
+            {
+                auto mid = first;
+                orange_stl::advance(mid, n - elems_before);
+                orange_stl::uninitialized_copy(first, mid, orange_stl::uninitialized_copy(begin_, position, new_begin));
+                begin_ = new_begin;
+                orange_stl::copy(mid, last, old_begin);
+            }
+        }
+        catch (...)
+        {
+            if(new_begin.node != begin_.node)
+                destroy_buffer(new_begin.node, begin_.node - 1);
+            throw;
+        }
+    }
+    else
+    {
+        require_capacity(n, false);
+        // 原来的迭代器可能会失效
+        auto old_end = end_;
+        auto new_end = end_ + n;
+        const auto elems_after = len - elems_before;
+        position = end_ - elems_after;
+        try
+        {
+            if (elems_after > n)
+            {
+                auto end_n = end_ - n;
+                orange_stl::uninitialized_copy(end_n, end_, end_);
+                end_ = new_end;
+                orange_stl::copy_backward(position, end_n, old_end);
+                orange_stl::copy(first, last, position);
+            }
+            else
+            {
+                auto mid = first;
+                orange_stl::advance(mid, elems_after);
+                orange_stl::uninitialized_copy(position, end_, orange_stl::uninitialized_copy(mid, last, end_));
+                end_ = new_end;
+                orange_stl::copy(first, mid, position);
+            }
+        }
+        catch (...)
+        {
+            if(new_end.node != end_.node)
+                destroy_buffer(end_.node + 1, new_end.node);
+            throw;
+        }
+    }
+}
+
+// insert_dispatch 函数
+template <class T>
+template <class IIter>
+void deque<T>::insert_dispatch(iterator position, IIter first, IIter last, input_iterator_tag)
+{
+    if (last <= first)  return;
+    const size_type n = orange_stl::distance(first, last);
+    const size_type elems_before = position - begin_;
+    if (elems_before < (size() / 2))
+    {
+        require_capacity(n, true);
+    }
+    else
+    {
+        require_capacity(n, false);
+    }
+    position = begin_ + elems_before;
+    auto cur = --last;
+    for (size_type i = 0; i < n; ++i, --cur)
+    {
+        insert(position, *cur);
+    }
+}
+
+template <class T>
+template <class FIter>
+void deque<T>::insert_dispatch(iterator position, FIter first, FIter last, forward_iterator_tag)
+{
+    if (last <= first)  return;
+    const size_type n = orange_stl::distance(first, last);
+    if (position.cur == begin_.cur)
+    {
+        require_capacity(n, true);
+        auto new_begin = begin_ - n;
+        try
+        {
+            orange_stl::uninitialized_copy(first, last, new_begin);
+            begin_ = new_begin;
+        }
+        catch (...)
+        {
+            if(new_begin.node != begin_.node)
+                destroy_buffer(new_begin.node, begin_.node - 1);
+            throw;
+        }
+    }
+    else if (position.cur == end_.cur)
+    {
+        require_capacity(n, false);
+        auto new_end = end_ + n;
+        try
+        {
+            orange_stl::uninitialized_copy(first, last, end_);
+            end_ = new_end;
+        }
+        catch (...)
+        {
+            if(new_end.node != end_.node)
+                destroy_buffer(end_.node + 1, new_end.node);
+            throw;
+        }
+    }
+    else
+    {
+        copy_insert(position, first, last, n);
+    }
+}
+
+// require_capacity 函数
+template <class T>
+void deque<T>::require_capacity(size_type n, bool front)
+{
+    if (front && (static_cast<size_type>(begin_.cur - begin_.first) < n))
+    {
+        const size_type need_buffer = (n - (begin_.cur - begin_.first)) / buffer_size + 1;
+        if (need_buffer > static_cast<size_type>(begin_.node - map_))
+        {
+            reallocate_map_at_front(need_buffer);
+            return;
+        }
+        create_buffer(begin_.node - need_buffer, begin_.node - 1);
+    }
+    else if (!front && (static_cast<size_type>(end_.last - end_.cur - 1) < n))
+    {
+        const size_type need_buffer = (n - (end_.last - end_.cur - 1)) / buffer_size + 1;
+        if (need_buffer > static_cast<size_type>((map_ + map_size_) - end_.node - 1))
+        {
+            reallocate_map_at_back(need_buffer);
+            return;
+        }
+        create_buffer(end_.node + 1, end_.node + need_buffer);
+    }
+}
+
+
+// reallocate_map_at_front 函数
+template <class T>
+void deque<T>::reallocate_map_at_front(size_type need_buffer)
+{
+    const size_type new_map_size = orange_stl::max(map_size_ << 1, map_size_ + need_buffer + DEQUE_MAP_INIT_SIZE);
+    map_pointer new_map = create_map(new_map_size);
+    const size_type old_buffer = end_.node - begin_.node + 1;
+    const size_type new_buffer = old_buffer + need_buffer;
+
+    // 另新的 map 中的指针指向原来的 buffer，并开辟新的 buffer
+    auto begin = new_map + (new_map_size - new_buffer) / 2;
+    auto mid = begin + need_buffer;
+    auto end = mid + old_buffer;
+    create_buffer(begin, mid - 1);
+    for (auto begin1 = mid, begin2 = begin_.node; begin1 != end; ++begin1, ++begin2)
+        *begin1 = *begin2;
+
+    // 更新数据
+    map_allocator::deallocate(map_, map_size_);
+    map_ = new_map;
+    map_size_ = new_map_size;
+    begin_ = iterator(*mid + (begin_.cur - begin_.first), mid);
+    end_ = iterator(*(end - 1) + (end_.cur - end_.first), end - 1);
+}
+
+// reallocate_map_at_back 函数
+template <class T>
+void deque<T>::reallocate_map_at_back(size_type need_buffer)
+{
+    const size_type new_map_size = orange_stl::max(map_size_ << 1, map_size_ + need_buffer + DEQUE_MAP_INIT_SIZE);
+    map_pointer new_map = create_map(new_map_size);
+    const size_type old_buffer = end_.node - begin_.node + 1;
+    const size_type new_buffer = old_buffer + need_buffer;
+
+    // 另新的 map 中的指针指向原来的 buffer，并开辟新的 buffer
+    auto begin = new_map + ((new_map_size - new_buffer) / 2);
+    auto mid = begin + old_buffer;
+    auto end = mid + need_buffer;
+    for (auto begin1 = begin, begin2 = begin_.node; begin1 != mid; ++begin1, ++begin2)
+        *begin1 = *begin2;
+    create_buffer(mid, end - 1);
+
+    // 更新数据
+    map_allocator::deallocate(map_, map_size_);
+    map_ = new_map;
+    map_size_ = new_map_size;
+
+    // 
+    begin_ = iterator(*begin + (begin_.cur - begin_.first), begin);
+    end_ = iterator(*(mid - 1) + (end_.cur - end_.first), mid - 1);
+}
+
+// 重载比较操作符
+template <class T>
+bool operator==(const deque<T>& lhs, const deque<T>& rhs)
+{
+    return lhs.size() == rhs.size() && 
+        orange_stl::equal(lhs.begin(), lhs.end(), rhs.begin());
+}
+
+template <class T>
+bool operator<(const deque<T>& lhs, const deque<T>& rhs)
+{
+    return orange_stl::lexicographical_compare(
+        lhs.begin(), lhs.end(), rhs.begin(), rhs.end());
+}
+
+template <class T>
+bool operator!=(const deque<T>& lhs, const deque<T>& rhs)
+{
+    return !(lhs == rhs);
+}
+
+template <class T>
+bool operator>(const deque<T>& lhs, const deque<T>& rhs)
+{
+    return rhs < lhs;
+}
+
+template <class T>
+bool operator<=(const deque<T>& lhs, const deque<T>& rhs)
+{
+    return !(rhs < lhs);
+}
+
+template <class T>
+bool operator>=(const deque<T>& lhs, const deque<T>& rhs)
+{
+    return !(lhs < rhs);
+}
+
+// 重载 orange_stl 的 swap
+template <class T>
+void swap(deque<T>& lhs, deque<T>& rhs)
+{
+    lhs.swap(rhs);
+}
+
 
 }
 
