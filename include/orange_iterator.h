@@ -137,7 +137,7 @@ template <class Iterator>
 typename iterator_traits<Iterator>::difference_type*
 distance_type(const Iterator&)
 {
-  return static_cast<typename iterator_traits<Iterator>::difference_type*>(0);
+    return static_cast<typename iterator_traits<Iterator>::difference_type*>(0);
 }
 
 // 萃取某个迭代器的 value_type
