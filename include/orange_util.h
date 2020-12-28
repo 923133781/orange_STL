@@ -13,7 +13,7 @@ namespace orange_stl
 template <class T>
 typename std::remove_reference<T>::type&& move(T&& arg) noexcept
 {
-  return static_cast<typename std::remove_reference<T>::type&&>(arg);
+    return static_cast<typename std::remove_reference<T>::type&&>(arg);
 }
 /*
 std::remove_reference为C++0x标准库中的元函数，其功能为去除类型中的引用。
