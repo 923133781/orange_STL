@@ -148,7 +148,7 @@ void pop_heap_aux(RandomIter first, RandomIter last, RandomIter result, T value,
 template <class RandomIter, class Compared>
 void pop_heap(RandomIter first, RandomIter last, Compared comp)
 {
-  orange_stl::pop_heap_aux(first, last - 1, last - 1, *(last - 1), distance_type(first), comp);
+    orange_stl::pop_heap_aux(first, last - 1, last - 1, *(last - 1), distance_type(first), comp);
 }
 
 /*****************************************************************************************/
