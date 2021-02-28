@@ -1,5 +1,5 @@
-#ifndef __ORANGE__RB_TREE_H__
-#define __ORANGE__RB_TREE_H__
+#ifndef __ORANGE_RB_TREE_H__
+#define __ORANGE_RB_TREE_H__
 
 #include <initializer_list>
 #include "orange_functional.h"
@@ -1696,4 +1696,4 @@ void swap(rb_tree<T, Compare>& lhs, rb_tree<T, Compare>& rhs) noexcept
 
 }   /* orange_stl */
 
-#endif // !__ORANGE__RB_TREE_H__
+#endif // !__ORANGE_RB_TREE_H__
