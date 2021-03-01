@@ -1,8 +1,8 @@
-#ifndef __ORANGE_UNORDERED_SET_H__
-#define __ORANGE_UNORDERED_SET_H__
+#ifndef __ORANGE_UNORDERED_MAP_H__
+#define __ORANGE_UNORDERED_MAP_H__
 
-// 这个头文件包含两个模板类 unordered_set 和 unordered_multiset
-// 功能与用法与 set 和 multiset 类似，不同的是使用 hashtable 作为底层实现机制，
+// 这个头文件包含两个模板类 unordered_map 和 unordered_multimap
+// 功能与用法与 map 和 multimap 类似，不同的是使用 hashtable 作为底层实现机制，
 // 容器中的元素不会自动排序
 
 #include "orange_hashtable.h"
@@ -10,22 +10,23 @@
 namespace orange_stl
 {
 
-// 模板类unordered_set， 键值不允许重复
+// 模板类unordered_map， 键值不允许重复
 // 参数一表示键值类型，参数二表示哈希表，默认orange_stl::hash
 // 参数三表示键值的比较方式，默认orange_stl::equal_to
 
-template <class Key, class Hash=orange_stl::hash<Key>, class KeyEqual=orange_stl::equal_to<Key>>
-class unordered_set
+template <class Key, class T, class Hash=orange_stl::hash<Key>, class KeyEqual=orange_stl::equal_to<Key>>
+class unordered_map
 {
 private:
     // 使用hashtable作为底层机制
-    typedef hashtable<Key, Hash, KeyEqual> base_type;
+    typedef hashtable<orange_stl::pair<const Key, T>, Hash, KeyEqual> base_type;
     base_type ht_;
 
 public:
     // 使用 hashtable 的型别
     typedef typename base_type::allocator_type       allocator_type;
     typedef typename base_type::key_type             key_type;
+    typedef typename base_type::mapped_type          mapped_type;
     typedef typename base_type::value_type           value_type;
     typedef typename base_type::hasher               hasher;
     typedef typename base_type::key_equal            key_equal;
@@ -37,9 +38,9 @@ public:
     typedef typename base_type::reference            reference;
     typedef typename base_type::const_reference      const_reference;
 
-    typedef typename base_type::const_iterator       iterator;
+    typedef typename base_type::iterator             iterator;
     typedef typename base_type::const_iterator       const_iterator;
-    typedef typename base_type::const_local_iterator local_iterator;
+    typedef typename base_type::local_iterator       local_iterator;
     typedef typename base_type::const_local_iterator const_local_iterator;
 
     allocator_type get_allocator() const
@@ -49,16 +50,16 @@ public:
 
 public:
     // 构造复制和移动函数
-    unordered_set() : ht_(100, Hash(), KeyEqual())
+    unordered_map() : ht_(100, Hash(), KeyEqual())
     { }
 
-    explicit unordered_set(size_type bucket_count, 
+    explicit unordered_map(size_type bucket_count, 
                            const Hash& hash = Hash(), 
                            const KeyEqual& equal = KeyEqual()) : ht_(bucket_count, hash, equal)
     { }
 
     template <class InputIterator>
-    unordered_set(InputIterator first, InputIterator last, 
+    unordered_map(InputIterator first, InputIterator last, 
                   const size_type bucket_count=100,
                   const Hash& hash = Hash(),
                   const KeyEqual& equal = KeyEqual())
@@ -68,7 +69,7 @@ public:
             ht_.insert_unique_noresize(*first);
     }
 
-    unordered_set(std::initializer_list<value_type> ilist,
+    unordered_map(std::initializer_list<value_type> ilist,
                   const size_type bucket_count=100,
                   const Hash& hash = Hash(),
                   const KeyEqual& equal = KeyEqual())
@@ -78,25 +79,25 @@ public:
             ht_.insert_unique_noresize(*first);
     }
 
-    unordered_set(const unordered_set& rhs) : ht_(rhs.ht_)
+    unordered_map(const unordered_map& rhs) : ht_(rhs.ht_)
     { }
 
-    unordered_set(unordered_set&& rhs) noexcept : ht_(orange_stl::move(rhs.ht_))
+    unordered_map(unordered_map&& rhs) noexcept : ht_(orange_stl::move(rhs.ht_))
     { }
 
-    unordered_set& operator=(const unordered_set& rhs)
+    unordered_map& operator=(const unordered_map& rhs)
     {
         ht_ = rhs.ht_;
         return *this;
     }
 
-    unordered_set& operator=(unordered_set&& rhs)
+    unordered_map& operator=(unordered_map&& rhs)
     {
         ht_ = orange_stl::move(rhs.ht_);
         return *this;
     }
 
-    unordered_set& operator=(std::initializer_list<value_type> ilist)
+    unordered_map& operator=(std::initializer_list<value_type> ilist)
     {
         ht_.clear();
         ht_.reserve(ilist.size());
@@ -105,7 +106,7 @@ public:
         return *this;
     }
 
-    ~unordered_set() = default;
+    ~unordered_map() = default;
 
     // 迭代器
     iterator begin() noexcept
@@ -167,7 +168,7 @@ public:
     }
     pair<iterator, bool> insert(value_type&& value)
     {
-        return ht._emplace_unique(orange_stl::move(value));
+        return ht_emplace_unique(orange_stl::move(value));
     }
 
     iterator insert(const_iterator hint, const value_type& value)
@@ -203,12 +204,41 @@ public:
         ht_.clear();
     }
 
-    void swap(unordered_set& other) noexcept
+    void swap(unordered_map& other) noexcept
     {
         ht_.swap(other.ht_);
     }
 
     // 查找
+    mapped_type& at(const key_type& key)
+    {
+        iterator it=ht_.find(key);
+        THROW_OUT_OF_RANGE_IF(it.node==nullptr, "unordered_map<Key, T> no such element exists");
+        return it->second;
+    }
+
+    const mapped_type& at(const key_type& key) const
+    {
+        iterator it=ht_.find(key);
+        THROW_OUT_OF_RANGE_IF(it.node==nullptr, "unordered_map<Key, T> no such element exists");
+        return it->second;
+    }
+
+    mapped_type& operator[](const key_type& key)
+    {
+        iterator it=ht_.find(key);
+        if(it.node==nullptr)
+            it = ht_.emplace_unique(key, T{}).first;
+        return it->second;
+    }
+    mapped_type& operator[](key_type&& key)
+    {
+        iterator it=ht_.find(key);
+        if(it.node==nullptr)
+            it = ht_.emplace_unique(orange_stl::move(key), T{}).first;
+        return it->second;
+    }
+
     size_type count(const key_type& key) const
     {
         return ht_.count(key);
@@ -310,55 +340,56 @@ public:
     }
 
 public:
-    friend bool operator==(const unordered_set& lhs, const unordered_set& rhs)
+    friend bool operator==(const unordered_map& lhs, const unordered_map& rhs)
     {
         return lhs.ht_.equal_range_unique(rhs.ht_);
     }
-    friend bool operator!=(const unordered_set& lhs, const unordered_set& rhs)
+    friend bool operator!=(const unordered_map& lhs, const unordered_map& rhs)
     {
         return !lhs.ht_.equal_range_unique(rhs.ht_);
     }
 };
 
 /* 重载比较操作符 */
-template <class Key, class Hash, class KeyEqual, class Alloc>
-bool operator==(const unordered_set<Key, Hash, KeyEqual>& lhs,
-                const unordered_set<Key, Hash, KeyEqual>& rhs)
+template <class Key, class T, class Hash, class KeyEqual>
+bool operator==(const unordered_map<Key, T, Hash, KeyEqual>& lhs,
+                const unordered_map<Key, T, Hash, KeyEqual>& rhs)
 {
     return lhs == rhs;
 }
 
-template <class Key, class Hash, class KeyEqual, class Alloc>
-bool operator!=(const unordered_set<Key, Hash, KeyEqual>& lhs,
-                const unordered_set<Key, Hash, KeyEqual>& rhs)
+template <class Key, class T, class Hash, class KeyEqual>
+bool operator!=(const unordered_map<Key, T, Hash, KeyEqual>& lhs,
+                const unordered_map<Key, T, Hash, KeyEqual>& rhs)
 {
     return lhs != rhs;
 }
 
 // 重载orange_stl的swap
-template <class Key, class Hash, class KeyEqual, class Alloc>
-void swap(const unordered_set<Key, Hash, KeyEqual>& lhs,
-          const unordered_set<Key, Hash, KeyEqual>& rhs)
+template <class Key, class T, class Hash, class KeyEqual>
+void swap(const unordered_map<Key, T, Hash, KeyEqual>& lhs,
+          const unordered_map<Key, T, Hash, KeyEqual>& rhs)
 {
     lhs.swap(rhs);
 }
 
 /* ******************************************************************** */
-// 模板类 unordered_multiset，键值允许重复
+// 模板类 unordered_multimap，键值允许重复
 // 参数一代表键值类型，参数二代表哈希函数，缺省使用 orange_stl::hash
 
-template <class Key, class Hash = orange_stl::hash<Key>, class KeyEqual = orange_stl::equal_to<Key>>
-class unordered_multiset
+template <class Key, class T, class Hash = orange_stl::hash<Key>, class KeyEqual = orange_stl::equal_to<Key>>
+class unordered_multimap
 {
 private:
     // 使用hashtable作为底层机制
-    typedef hashtable<Key, Hash, KeyEqual> base_type;
+    typedef hashtable<pair<const Key, T>, Hash, KeyEqual> base_type;
     base_type ht_;
 
 public:
     // 使用 hashtable 的型别
     typedef typename base_type::allocator_type       allocator_type;
     typedef typename base_type::key_type             key_type;
+    typedef typename base_type::mapped_type          mapped_type;
     typedef typename base_type::value_type           value_type;
     typedef typename base_type::hasher               hasher;
     typedef typename base_type::key_equal            key_equal;
@@ -370,9 +401,9 @@ public:
     typedef typename base_type::reference            reference;
     typedef typename base_type::const_reference      const_reference;
 
-    typedef typename base_type::const_iterator       iterator;
+    typedef typename base_type::iterator             iterator;
     typedef typename base_type::const_iterator       const_iterator;
-    typedef typename base_type::const_local_iterator local_iterator;
+    typedef typename base_type::local_iterator       local_iterator;
     typedef typename base_type::const_local_iterator const_local_iterator;
 
     allocator_type get_allocator() const 
@@ -382,17 +413,17 @@ public:
 
 public:
     // 构造 复制和移动函数
-    unordered_multiset() : ht_(100, Hash(), KeyEqual())
+    unordered_multimap() : ht_(100, Hash(), KeyEqual())
     { }
 
-    explicit unordered_multiset(size_type bucket_count,
+    explicit unordered_multimap(size_type bucket_count,
                                 const Hash& hash = Hash(),
                                 const KeyEqual& equal = KeyEqual())
         :ht_(bucket_count, hash, equal)
     { }
 
     template <class InputIterator>
-    unordered_multiset(InputIterator first, InputIterator last,
+    unordered_multimap(InputIterator first, InputIterator last,
                         const size_type bucket_count = 100,
                         const Hash& hash = Hash(),
                         const KeyEqual& equal = KeyEqual())
@@ -402,7 +433,7 @@ public:
             ht_.insert_multi_noresize(*first);
     }
 
-    unordered_multiset(std::initializer_list<value_type> ilist,
+    unordered_multimap(std::initializer_list<value_type> ilist,
                         const size_type bucket_count = 100,
                         const Hash& hash = Hash(),
                         const KeyEqual& equal = KeyEqual())
@@ -412,23 +443,23 @@ public:
             ht_.insert_multi_noresize(*first);
     }
 
-    unordered_multiset(const unordered_multiset& rhs):ht_(rhs.ht_)
+    unordered_multimap(const unordered_multimap& rhs):ht_(rhs.ht_)
     { }
-    unordered_multiset(unordered_multiset&& rhs) noexcept : ht_(orange_stl::move(rhs.ht_))
+    unordered_multimap(unordered_multimap&& rhs) noexcept : ht_(orange_stl::move(rhs.ht_))
     { }
 
-    unordered_multiset& operator=(const unordered_multiset& rhs)
+    unordered_multimap& operator=(const unordered_multimap& rhs)
     {
         ht_ = rhs.ht_;
         return *this;
     }
-    unordered_multiset& operator=(unordered_multiset&& rhs)
+    unordered_multimap& operator=(unordered_multimap&& rhs)
     {
         ht_ = orange_stl::move(rhs.ht_);
         return *this;
     }
 
-    unordered_multiset& operator=(std::initializer_list<value_type> ilist)
+    unordered_multimap& operator=(std::initializer_list<value_type> ilist)
     {
         ht_.clear();
         ht_.reserve(ilist.size());
@@ -437,7 +468,7 @@ public:
         return *this;
     }
 
-    ~unordered_multiset() = default;
+    ~unordered_multimap() = default;
 
     // 迭代器相关
     iterator begin() noexcept
@@ -499,7 +530,7 @@ public:
     }
     pair<iterator, bool> insert(value_type&& value)
     {
-        return ht._emplace_multi(orange_stl::move(value));
+        return ht_.emplace_multi(orange_stl::move(value));
     }
 
     iterator insert(const_iterator hint, const value_type& value)
@@ -536,7 +567,7 @@ public:
         ht_.clear();
     }
 
-    void swap(unordered_multiset& other) noexcept
+    void swap(unordered_multimap& other) noexcept
     {
         ht_.swap(other.ht_);
     }
@@ -643,35 +674,35 @@ public:
     }
 
 public:
-    friend bool operator==(const unordered_multiset& lhs, const unordered_multiset& rhs)
+    friend bool operator==(const unordered_multimap& lhs, const unordered_multimap& rhs)
     {
         return lhs.ht_.equal_range_multi(rhs.ht_);
     }
-    friend bool operator!=(const unordered_multiset& lhs, const unordered_multiset& rhs)
+    friend bool operator!=(const unordered_multimap& lhs, const unordered_multimap& rhs)
     {
         return !lhs.ht_.equal_range_multi(rhs.ht_);
     }
 };
 
 /* 重载比较操作符 */
-template <class Key, class Hash, class KeyEqual, class Alloc>
-bool operator==(const unordered_multiset<Key, Hash, KeyEqual>& lhs,
-                const unordered_multiset<Key, Hash, KeyEqual>& rhs)
+template <class Key, class T, class Hash, class KeyEqual, class Alloc>
+bool operator==(const unordered_multimap<Key, T, Hash, KeyEqual>& lhs,
+                const unordered_multimap<Key, T, Hash, KeyEqual>& rhs)
 {
     return lhs==rhs;
 }
 
-template <class Key, class Hash, class KeyEqual, class Alloc>
-bool operator!=(const unordered_multiset<Key, Hash, KeyEqual>& lhs,
-                const unordered_multiset<Key, Hash, KeyEqual>& rhs)
+template <class Key, class T, class Hash, class KeyEqual, class Alloc>
+bool operator!=(const unordered_multimap<Key, T, Hash, KeyEqual>& lhs,
+                const unordered_multimap<Key, T, Hash, KeyEqual>& rhs)
 {
     return lhs!=rhs;
 }
 
 // 重载orange_stl的swap
-template <class Key, class Hash, class KeyEqual, class Alloc>
-void swap(const unordered_multiset<Key, Hash, KeyEqual>& lhs,
-          const unordered_multiset<Key, Hash, KeyEqual>& rhs)
+template <class Key, class T, class Hash, class KeyEqual, class Alloc>
+void swap(const unordered_multimap<Key, T, Hash, KeyEqual>& lhs,
+          const unordered_multimap<Key, T, Hash, KeyEqual>& rhs)
 {
     lhs.swap(rhs);
 }
@@ -680,4 +711,4 @@ void swap(const unordered_multiset<Key, Hash, KeyEqual>& lhs,
 } // end orange_stl
 
 
-#endif  // end of __ORANGE_UNORDERED_SET
+#endif  // end of __ORANGE_UNORDERED_MAP__
