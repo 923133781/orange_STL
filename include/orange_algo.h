@@ -543,7 +543,7 @@ lbound_dispatch(ForwardIter first, ForwardIter last,
     {
       len = half;
     }
-  }
+  } 
   return first;
 }
 

@@ -35,10 +35,10 @@ void destroy_one(Ty*, std::true_type) {}
 template <class Ty>
 void destroy_one(Ty* pointer, std::false_type)
 {
-  if (pointer != nullptr)
-  {
-    pointer->~Ty();
-  }
+    if (pointer != nullptr)
+    { 
+        pointer->~Ty();
+    }
 }
 
 // 第三个参数是判别有无默认的构造函数

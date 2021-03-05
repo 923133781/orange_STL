@@ -11,6 +11,20 @@ namespace orange_stl
 {
 
 // 五种迭代器类型
+
+/* 
+input_iterator_tag
+         ^
+         |
+forward_iterator_tag
+         ^
+         |
+bidirectional_iterator_tag
+         ^
+         |
+random_access_iterator_tag
+
+ */
 struct input_iterator_tag {};
 struct output_iterator_tag {};
 struct forward_iterator_tag : public input_iterator_tag {};
@@ -175,7 +189,7 @@ distance_dispatch(RandomIter first, RandomIter last,
 
 template <class InputIterator>
 typename iterator_traits<InputIterator>::difference_type
-distance(InputIterator first, InputIterator last)
+distance(InputIterator first, InputIterator last)  
 {
   return distance_dispatch(first, last, iterator_category(first));
 }
@@ -187,25 +201,25 @@ template <class InputIterator, class Distance>
 void advance_dispatch(InputIterator& i, Distance n, input_iterator_tag)
 {
   while (n--) 
-    ++i;
+      ++i;
 }
 
 // advance 的 bidirectional_iterator_tag 的版本
 template <class BidirectionalIterator, class Distance>
 void advance_dispatch(BidirectionalIterator& i, Distance n, bidirectional_iterator_tag)
 {
-  if (n >= 0)
-    while (n--)  ++i;
-  else
-    while (n++)  --i;
+    if (n >= 0)
+        while (n--)  ++i;
+    else
+        while (n++)  --i;
 }
 
 // advance 的 random_access_iterator_tag 的版本
 template <class RandomIter, class Distance>
 void advance_dispatch(RandomIter& i, Distance n, random_access_iterator_tag)
 {
-  i += n;
-}
+    i += n;
+} 
 
 template <class InputIterator, class Distance>
 void advance(InputIterator& i, Distance n)
@@ -242,7 +256,7 @@ public:
 
 public:
   // 取出对应的正向迭代器
-  iterator_type base() const 
+  iterator_type base() const  
   { return current; }
 
   // 重载操作符
